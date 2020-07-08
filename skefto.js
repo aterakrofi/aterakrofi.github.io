@@ -16,7 +16,7 @@
             alias: "name",
             dataType: tableau.dataTypeEnum.string
         }, {
-            id: "location",
+            id: "createdAt",
             dataType: tableau.dataTypeEnum.geometry
         }];
 
