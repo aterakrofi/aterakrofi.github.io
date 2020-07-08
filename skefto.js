@@ -8,21 +8,21 @@
             id: "id",
             dataType: tableau.dataTypeEnum.string
         }, {
-            id: "status",
-            alias: "status",
-            dataType: tableau.dataTypeEnum.float
-        }, {
             id: "name",
             alias: "name",
             dataType: tableau.dataTypeEnum.string
         }, {
-            id: "createdAt",
-            dataType: tableau.dataTypeEnum.geometry
+            id: "firstName",
+            alias: "firstName",
+            dataType: tableau.dataTypeEnum.string
+        }, {
+            id: "lastName",
+            dataType: tableau.dataTypeEnum.string
         }];
 
         var tableSchema = {
             id: "skefto",
-            alias: "Skefto Test",
+            alias: "Skefto",
             columns: cols
         };
 
