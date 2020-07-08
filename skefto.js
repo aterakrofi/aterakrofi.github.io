@@ -8,12 +8,12 @@
             id: "id",
             dataType: tableau.dataTypeEnum.string
         }, {
-            id: "mag",
-            alias: "magnitude",
+            id: "status",
+            alias: "status",
             dataType: tableau.dataTypeEnum.float
         }, {
-            id: "title",
-            alias: "title",
+            id: "name",
+            alias: "name",
             dataType: tableau.dataTypeEnum.string
         }, {
             id: "location",
@@ -21,27 +21,52 @@
         }];
 
         var tableSchema = {
-            id: "earthquakeFeed",
-            alias: "Earthquakes with magnitude greater than 4.5 in the last seven days",
+            id: "skefto",
+            alias: "Skefto Test",
             columns: cols
         };
 
         schemaCallback([tableSchema]);
     };
 
-    // Download the data
+
+
+
+
+
+
     myConnector.getData = function(table, doneCallback) {
-        $.getJSON("http://159.65.9.196/api/plans", function(resp) {
-            var feat = resp.features,
+
+      var myHeaders = new Headers();
+      myHeaders.append("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiIwYTI5NTRhYS0wOWVmLTRjMjEtYTBmYy1kZDQ4NDMwNzViMjQiLCJpYXQiOjE1OTM4MTY2Mzh9.tdKyy-1nYbOE6jwqhIio0KzqQUVYyi_JbEX3OdNfwhg");
+
+      var requestOptions = {
+        method: 'GET',
+        headers: myHeaders,
+        redirect: 'follow'
+      };
+
+      fetch("http://159.65.9.196/api/plans", requestOptions)
+        .then(response => response.text())
+        .then(result => console.log(result))
+        .catch(error => console.log('error', error));
+
+
+
+
+
+        //$.getJSON("http://159.65.9.196/api/plans", function(resp) {
+
+            var feat = requestOptions.features,
                 tableData = [];
 
             // Iterate over the JSON object
             for (var i = 0, len = feat.length; i < len; i++) {
                 tableData.push({
                     "id": feat[i].id,
-                    "mag": feat[i].properties.mag,
-                    "title": feat[i].properties.title,
-                    "location": feat[i].geometry
+                    "createdAt": feat[i].properties.createdAt,
+                    "status": feat[i].properties.status,
+                    "name	": feat[i].name
                 });
             }
 
@@ -55,7 +80,7 @@
     // Create event listeners for when the user submits the form
     $(document).ready(function() {
         $("#submitButton").click(function() {
-            tableau.connectionName = "USGS Earthquake Feed"; // This will be the data source name in Tableau
+            tableau.connectionName = "Skefto API Source"; // This will be the data source name in Tableau
             tableau.submit(); // This sends the connector object to Tableau
         });
     });
