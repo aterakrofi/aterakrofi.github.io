@@ -30,29 +30,9 @@
     };
 
     // Download the data
-
-
-
     myConnector.getData = function(table, doneCallback) {
-        //$.getJSON("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson", function(resp) {
-
-
-
-
-            var requestOptions = {
-              method: 'GET',
-              redirect: 'follow'
-            };
-
-            fetch("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson", requestOptions)
-              //.then(response => response.text())
-              //.then(result => console.log(result))
-              //.catch(error => console.log('error', error))
-              ;
-
-
-           var feat = requestOptions.features,
-
+        $.getJSON("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/4.5_week.geojson", function(resp) {
+            var feat = resp.features,
                 tableData = [];
 
             // Iterate over the JSON object

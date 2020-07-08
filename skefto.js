@@ -29,35 +29,10 @@
         schemaCallback([tableSchema]);
     };
 
-
-
-
-
-
-
+  //download data
     myConnector.getData = function(table, doneCallback) {
-
-      var myHeaders = new Headers();
-      myHeaders.append("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb21wYW55SWQiOiIwYTI5NTRhYS0wOWVmLTRjMjEtYTBmYy1kZDQ4NDMwNzViMjQiLCJpYXQiOjE1OTM4MTY2Mzh9.tdKyy-1nYbOE6jwqhIio0KzqQUVYyi_JbEX3OdNfwhg");
-
-      var requestOptions = {
-        method: 'GET',
-        headers: myHeaders,
-        redirect: 'follow'
-      };
-
-      fetch("http://159.65.9.196/api/plans", requestOptions)
-        .then(response => response.text())
-        .then(result => console.log(result))
-        .catch(error => console.log('error', error));
-
-
-
-
-
-        //$.getJSON("http://159.65.9.196/api/plans", function(resp) {
-
-            var feat = requestOptions.features,
+        $.getJSON("http://159.65.9.196/api/plans", function(resp) {
+            var feat = resp.features,
                 tableData = [];
 
             // Iterate over the JSON object
