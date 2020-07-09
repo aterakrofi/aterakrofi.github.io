@@ -9,7 +9,7 @@
   // to do a server-side OAuth flow and avoid this problem
   var config = {
       clientId: 'YOUR_CLIENT_ID',
-      redirectUri: 'https://aterakrofi.github.io/skefto.html:8080/redirect',
+      redirectUri: 'https://aterakrofi.github.io/skefto.html/redirect',
       authUrl: 'https://foursquare.com/',
       version: '20190102'
   };
