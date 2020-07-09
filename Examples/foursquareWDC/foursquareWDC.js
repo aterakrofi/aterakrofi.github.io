@@ -4,7 +4,7 @@
       var accessToken = Cookies.get("accessToken");
       var hasAuth = accessToken && accessToken.length > 0;
       updateUIWithAuthState(hasAuth);
-
+//
       $("#connectbutton").click(function() {
           doAuthRedirect();
       });
