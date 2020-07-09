@@ -1,10 +1,29 @@
-// This function parses the access token in the URI if available
+(function() {
+  'use strict';
+
+  // This config stores the important strings needed to
+  // connect to the foursquare API and OAuth service to
+  // gain authorization that we then exchange for an access
+  // token.
+  //
+  // Do not store your client secret here.
+  // We are using a server-side OAuth flow, and the client
+  // secret is kept on the web server.
+  var config = {
+      clientId: 'TJA2EKSTKY13M3JYJDQCMMJYSSQYCPQEORNVAUIWTV3A0TCS',
+      redirectUri: 'http://localhost:3333/redirect',
+      authUrl: 'https://foursquare.com/',
+      version: '20190102'
+  };
+   //  more code goes here
+
+  // This function parses the access token in the URI if available
   // It also adds a link to the foursquare connect button
   $(document).ready(function() {
       var accessToken = Cookies.get("accessToken");
       var hasAuth = accessToken && accessToken.length > 0;
       updateUIWithAuthState(hasAuth);
-//
+
       $("#connectbutton").click(function() {
           doAuthRedirect();
       });
@@ -14,3 +33,259 @@
           tableau.submit();
       });
   });
+
+  // An on-click function for the connect to foursquare button,
+  // This will redirect the user to a foursquare login
+  function doAuthRedirect() {
+      var appId = config.clientId;
+      if (tableau.authPurpose === tableau.authPurposeEnum.ephemerel) {
+        appId = config.clientId;  // This should be Desktop
+      } else if (tableau.authPurpose === tableau.authPurposeEnum.enduring) {
+        appId = config.clientId; // This should be the Tableau Server appID
+      }
+
+      var url = config.authUrl + 'oauth2/authenticate?response_type=code&client_id=' + appId +
+              '&redirect_uri=' + config.redirectUri;
+      window.location.href = url;
+  }
+
+  //------------- OAuth Helpers -------------//
+  // This helper function returns the URI for the venueLikes endpoint
+  // It appends the passed in accessToken to the call to personalize the call for the user
+  function getVenueLikesURI(accessToken) {
+      return "https://api.foursquare.com/v2/users/self/venuelikes?oauth_token=" +
+              accessToken + "&v=" + config.version;
+  }
+
+  // This function toggles the label shown depending
+  // on whether or not the user has been authenticated
+  function updateUIWithAuthState(hasAuth) {
+      if (hasAuth) {
+          $(".notsignedin").css('display', 'none');
+          $(".signedin").css('display', 'block');
+      } else {
+          $(".notsignedin").css('display', 'block');
+          $(".signedin").css('display', 'none');
+      }
+  }
+
+  //------------- Tableau WDC code -------------//
+  // Create tableau connector, should be called first
+  var myConnector = tableau.makeConnector();
+
+  // Init function for connector, called during every phase but
+  // only called when running inside the simulator or tableau
+  myConnector.init = function(initCallback) {
+      tableau.authType = tableau.authTypeEnum.custom;
+
+      // If we are in the auth phase we only want to show the UI needed for auth
+      if (tableau.phase == tableau.phaseEnum.authPhase) {
+        $("#getvenuesbutton").css('display', 'none');
+      }
+
+      if (tableau.phase == tableau.phaseEnum.gatherDataPhase) {
+        // If API that WDC is using has an endpoint that checks
+        // the validity of an access token, that could be used here.
+        // Then the WDC can call tableau.abortForAuth if that access token
+        // is invalid.
+      }
+
+      var accessToken = Cookies.get("accessToken");
+      console.log("Access token is '" + accessToken + "'");
+      var hasAuth = (accessToken && accessToken.length > 0) || tableau.password.length > 0;
+      updateUIWithAuthState(hasAuth);
+
+      initCallback();
+
+      // If we are not in the data gathering phase, we want to store the token
+      // This allows us to access the token in the data gathering phase
+      if (tableau.phase == tableau.phaseEnum.interactivePhase || tableau.phase == tableau.phaseEnum.authPhase) {
+          if (hasAuth) {
+              tableau.password = accessToken;
+
+              if (tableau.phase == tableau.phaseEnum.authPhase) {
+                // Auto-submit here if we are in the auth phase
+                tableau.submit()
+              }
+
+              return;
+          }
+      }
+  };
+
+  // Declare the data to Tableau that we are returning from Foursquare
+  myConnector.getSchema = function(schemaCallback) {
+      var schema = [];
+
+      var col1 = { id: "Name", dataType: "string"};
+      var col2 = { id: "Latitude", dataType: "float"};
+      var col3 = { id: "Longitude", dataType: "float"};
+      var col4 = { id: "Address", dataType: "string"};
+      var cols = [col1, col2, col3, col4];
+
+      var tableInfo = {
+        id: "FoursquareTable",
+        columns: cols
+      }
+
+      schema.push(tableInfo);
+
+      schemaCallback(schema);
+  };
+
+  // This function actually make the foursquare API call and
+  // parses the results and passes them back to Tableau
+  myConnector.getData = function(table, doneCallback) {
+      var dataToReturn = [];
+      var hasMoreData = false;
+
+      var accessToken = tableau.password;
+      var connectionUri = getVenueLikesURI(accessToken);
+
+      var xhr = $.ajax({
+          url: connectionUri,
+          dataType: 'json',
+          success: function (data) {
+              if (data.response) {
+                  var venues = data.response.venues.items;
+
+                  var ii;
+                  for (ii = 0; ii < venues.length; ++ii) {
+                      var venue = {'Name': venues[ii].name,
+                                   'Latitude': venues[ii].location.lat,
+                                   'Longitude': venues[ii].location.lng,
+                                   'Address' : venues[ii].location.address};
+                      dataToReturn.push(venue);
+                  }
+
+                  table.appendRows(dataToReturn);
+                  doneCallback();
+              }
+              else {
+                  tableau.abortWithError("No results found");
+              }
+          },
+          error: function (xhr, ajaxOptions, thrownError) {
+              // WDC should do more granular error checking here
+              // or on the server side.  This is just a sample of new API.
+              tableau.abortForAuth("Invalid Access Token");
+          }
+      });
+  };
+
+  // Register the tableau connector, call this last
+  tableau.registerConnector(myConnector);
+
+
+})();  // end of anonymous function
+Config.js
+Configuration file for Node.js Express web server.
+
+// The necessary configuration for your server
+// Contains credentials for your Foursquare application
+// And the new redirect path for the OAuth flow
+module.exports = {
+ 'HOSTPATH': 'http://localhost',
+ 'PORT': 3333,
+ 'CLIENT_ID': 'YOUR_CLIENT_ID',
+ 'CLIENT_SECRET': 'YOUR_CLIENT_SECRET',
+ 'REDIRECT_PATH': '/redirect'
+};
+
+app.js
+Express web server, using Node.js.
+
+// -------------------------------------------------- //
+// Module Dependencies
+// -------------------------------------------------- //
+var express = require('express');
+var cookieParser = require('cookie-parser');
+var querystring = require('querystring');
+var http = require('http');
+var request = require('request');
+var path = require('path');
+var config = require('./config.js');              // Get our config info (app id and app secret)
+var sys = require('util');
+
+var app = express();
+
+// -------------------------------------------------- //
+// Express set-up and middleware
+// -------------------------------------------------- //
+app.set('port', (process.env.PORT || config.PORT));
+app.use(cookieParser());                                    // cookieParser middleware to work with cookies
+app.use(express.static(__dirname + '/public'));
+
+// -------------------------------------------------- //
+// Variables
+// -------------------------------------------------- //
+var clientID = process.env.FOURSQUARE_CLIENT_ID || config.CLIENT_ID;
+var clientSecret = process.env.FOURSQUARE_CLIENT_SECRET || config.CLIENT_SECRET;
+console.log(clientID);
+console.log(clientSecret);
+var redirectURI = config.HOSTPATH + ":" + config.PORT + config.REDIRECT_PATH
+
+// -------------------------------------------------- //
+// Routes
+// -------------------------------------------------- //
+
+app.get('/', function(req, res) {
+  console.log("got here");
+  res.redirect('/index.html');
+});
+
+// This route is hit once Foursquare redirects to our
+// server after performing authentication
+app.get('/redirect', function(req, res) {
+  // get our authorization code
+  authCode = req.query.code;
+  console.log("Auth Code is: " + authCode);
+
+  // Set up a request for an long-lived Access Token now that we have a code
+  var requestObject = {
+      'client_id': clientID,
+      'redirect_uri': redirectURI,
+      'client_secret': clientSecret,
+      'code': authCode,
+      'grant_type': 'authorization_code'
+  };
+
+  var token_request_header = {
+      'Content-Type': 'application/x-www-form-urlencoded'
+  };
+
+  // Build the post request for the OAuth endpoint
+  var options = {
+      method: 'POST',
+      url: 'https://foursquare.com/oauth2/access_token',
+      form: requestObject,
+      headers: token_request_header
+  };
+
+  // Make the request
+  request(options, function (error, response, body) {
+    if (!error) {
+      // We should receive  { access_token: ACCESS_TOKEN }
+      // if everything went smoothly, so parse the token from the response
+      body = JSON.parse(body);
+      var accessToken = body.access_token;
+      console.log('accessToken: ' + accessToken);
+
+      // Set the token in cookies so the client can access it
+      res.cookie('accessToken', accessToken, { });
+
+      // Head back to the WDC page
+      res.redirect('/index.html');
+    } else {
+      console.log(error);
+    }
+  });
+});
+
+
+// -------------------------------------------------- //
+// Create and start our server
+// -------------------------------------------------- //
+http.createServer(app).listen(app.get('port'), function(){
+  console.log('Express server listening on port ' + app.get('port'));
+});
