@@ -9,10 +9,10 @@
   // to do a server-side OAuth flow and avoid this problem
   var config = {
       clientId: 'YOUR_CLIENT_ID',
-      redirectUri: 'http://localhost:3333/redirect',
+      redirectUri: 'https://aterakrofi.github.io/skefto.html:8080/redirect',
       authUrl: 'https://foursquare.com/',
       version: '20190102'
-  }; 
+  };
 
   // Called when web page first loads and when
   // the OAuth flow returns to the page
